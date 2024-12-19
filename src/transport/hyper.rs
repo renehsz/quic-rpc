@@ -16,7 +16,6 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Client, Request, Response, Server, StatusCode, Uri,
 };
-use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{debug, event, trace, Level};
 
 use crate::{

@@ -10,12 +10,11 @@ use std::{
     sync::Arc,
     task::{self, Poll},
 };
-
+use futures::channel::oneshot;
 use futures_lite::{Future, Stream, StreamExt};
 use futures_util::{SinkExt, TryStreamExt};
+use futures_util::task::SpawnExt;
 use pin_project::pin_project;
-use tokio::{sync::oneshot, task::JoinSet};
-use tokio_util::task::AbortOnDropHandle;
 use tracing::{error, warn};
 
 use crate::{
@@ -229,13 +228,15 @@ impl<S: Service, C: Listener<S>> RpcServer<S, C> {
         E: Into<anyhow::Error> + 'static,
     {
         let handler = Arc::new(handler);
-        let mut tasks = JoinSet::new();
+        let mut tasks = futures::stream::FuturesUnordered::new();
         loop {
-            tokio::select! {
-                Some(res) = tasks.join_next(), if !tasks.is_empty() => {
-                    if let Err(e) = res {
-                        if e.is_panic() {
-                            error!("Panic handling RPC request: {e}");
+            futures_util::select! {
+                Some(res) = tasks.join_next() => {
+                    if !tasks.is_empty() { // TODO: is this correct?
+                        if let Err(e) = res {
+                            if e.is_panic() {
+                                error!("Panic handling RPC request: {e}");
+                            }
                         }
                     }
                 }
@@ -274,7 +275,7 @@ impl<S: Service, C: Listener<S>> RpcServer<S, C> {
         Fut: Future<Output = Result<(), E>> + Send + 'static,
         E: Into<anyhow::Error> + 'static,
     {
-        AbortOnDropHandle::new(tokio::spawn(self.accept_loop(handler)))
+        AbortOnDropHandle::new(glib::spawn_future(self.accept_loop(handler)))
     }
 }
 
@@ -439,8 +440,8 @@ impl<T> Future for UnwrapToPending<T> {
     }
 }
 
-pub(crate) async fn race2<T, A: Future<Output = T>, B: Future<Output = T>>(f1: A, f2: B) -> T {
-    tokio::select! {
+pub(crate) async fn race2<T, A: Future<Output = T>, B: Future<Output = T>>(mut f1: A, mut f2: B) -> T {
+    futures_util::select! {
         x = f1 => x,
         x = f2 => x,
     }

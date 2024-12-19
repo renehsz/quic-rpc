@@ -153,7 +153,7 @@ where
                     return Ok(());
                 }
             };
-            tokio::pin!(responses);
+            futures_lite::pin!(responses);
             while let Some(response) = responses.next().await {
                 // turn into a S::Res so we can send it
                 let response = response.into();

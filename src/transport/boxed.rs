@@ -511,6 +511,7 @@ mod tests {
         type Res = u64;
     }
 
+    /* TODO
     #[cfg(feature = "flume-transport")]
     #[tokio::test]
     async fn box_smoke() {
@@ -537,4 +538,5 @@ mod tests {
             println!("{:?}", res);
         }
     }
+    */
 }

@@ -8,13 +8,13 @@ use std::{
     sync::Arc,
     task::{Context, Poll},
 };
-
+use futures::channel::oneshot;
 use futures_lite::{Future, Stream, StreamExt};
 use futures_sink::Sink;
 use futures_util::FutureExt;
+use glib::JoinHandle;
 use pin_project::pin_project;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::sync::oneshot;
 use tracing::{debug_span, Instrument};
 
 use super::{
@@ -31,7 +31,7 @@ const MAX_FRAME_LENGTH: usize = 1024 * 1024 * 16;
 #[derive(Debug)]
 struct ListenerInner {
     endpoint: Option<quinn::Endpoint>,
-    task: Option<tokio::task::JoinHandle<()>>,
+    task: Option<JoinHandle<()>>,
     local_addr: [LocalAddr; 1],
     receiver: flume::Receiver<SocketInner>,
 }
@@ -229,7 +229,7 @@ struct ClientConnectionInner {
     /// The quinn endpoint, we just keep a clone of this for information
     endpoint: Option<quinn::Endpoint>,
     /// The task that handles creating new connections
-    task: Option<tokio::task::JoinHandle<()>>,
+    task: Option<JoinHandle<()>>,
     /// The channel to receive new connections
     sender: flume::Sender<oneshot::Sender<Result<SocketInner, quinn::ConnectionError>>>,
 }
@@ -322,7 +322,7 @@ impl<In: RpcMessage, Out: RpcMessage> QuinnConnector<In, Out> {
             addr,
             name,
         };
-        tokio::pin!(reconnect);
+        futures_lite::pin!(reconnect);
 
         let mut receiver = Receiver::new(&requests);
 
@@ -440,7 +440,7 @@ impl<In: RpcMessage, Out: RpcMessage> QuinnConnector<In, Out> {
     /// Create a new channel
     pub fn from_connection(connection: quinn::Connection) -> Self {
         let (sender, receiver) = flume::bounded(16);
-        let task = tokio::spawn(Self::single_connection_handler(connection, receiver));
+        let task = glib::spawn_async(Self::single_connection_handler(connection, receiver));
         Self {
             inner: Arc::new(ClientConnectionInner {
                 endpoint: None,

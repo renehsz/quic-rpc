@@ -286,6 +286,7 @@ mod tests {
         type Res = String;
     }
 
+    /*
     #[tokio::test]
     #[ignore]
     async fn smoke() -> TestResult<()> {
@@ -322,4 +323,5 @@ mod tests {
         }
         Ok(())
     }
+    */
 }

@@ -4,12 +4,10 @@ use std::{
 };
 
 use bincode::Options;
-use futures_lite::Stream;
+use futures_lite::{AsyncRead, AsyncWrite, Stream};
 use futures_sink::Sink;
 use pin_project::pin_project;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio_util::codec::LengthDelimitedCodec;
 
 type BincodeEncoding =
     bincode::config::WithOtherIntEncoding<bincode::DefaultOptions, bincode::config::FixintEncoding>;
@@ -18,7 +16,7 @@ type BincodeEncoding =
 #[pin_project]
 pub struct FramedBincodeRead<T, In>(
     #[pin]
-    tokio_serde::SymmetricallyFramed<
+    serde_transport::SymmetricallyFramed<
         tokio_util::codec::FramedRead<T, tokio_util::codec::LengthDelimitedCodec>,
         In,
         tokio_serde::formats::SymmetricalBincode<In, BincodeEncoding>,

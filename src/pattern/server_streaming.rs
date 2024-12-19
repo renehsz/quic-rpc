@@ -123,7 +123,7 @@ where
         race2(cancel.map(Err), async move {
             // get the response
             let responses = f(target, req);
-            tokio::pin!(responses);
+            futures_lite::pin!(responses);
             while let Some(response) = responses.next().await {
                 // turn into a S::Res so we can send it
                 let response = response.into();

@@ -20,7 +20,6 @@ use iroh_net::{NodeAddr, NodeId};
 use pin_project::pin_project;
 use quinn::Connection;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio::{sync::oneshot, task::yield_now};
 use tracing::{debug_span, Instrument};
 
 use super::{
